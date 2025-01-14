@@ -23,3 +23,6 @@ if "default" not in pipelines \
     and "custom" not in pipelines \
     and "pull-requests" not in pipelines:
         print("'pipelines' requires at least a default, branches, tags, bookmarks or custom section")
+
+        exit(1)
+
