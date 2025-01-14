@@ -1,4 +1,11 @@
 import yaml
+import argparse
+
+parser = argparse.ArgumentParser(
+    prog='Bitbucket Pipelines Runner',
+    description='Allows users to run Bitbucket Pipelines locally')
+
+parser.parse_args()
 
 document = yaml.load(open("bitbucket-pipelines.yml").read(), Loader=yaml.CLoader)
 
