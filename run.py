@@ -2,6 +2,7 @@ import yaml
 import argparse
 import jsonschema
 import json
+import shutil
 
 #region Arguments
 parser = argparse.ArgumentParser(
@@ -35,6 +36,9 @@ def get_steps(pipelines):
 
     return steps
 #endregion
+
+if shutil.which("docker") is None:
+    print("Docker needs to be installed for this program to work")
 
 document = yaml.load(open("bitbucket-pipelines.yml").read(), Loader=yaml.CLoader)
 schema = json.loads(open("schema.json").read())
