@@ -22,5 +22,17 @@ schema = json.loads(open("schema.json").read())
 
 jsonschema.validate(document, schema)
 
+if "pipelines" not in document:
+    print("Pipelines need to be set")
+    exit(1)
+
+pipelines = document["pipelines"]
+
 if arguments.default:
+    if "default" not in pipelines:
+        print("Default needs to be set")
+        exit(1)
+    
+    default = pipelines["default"]
+    
     print("Running default pipeline")
