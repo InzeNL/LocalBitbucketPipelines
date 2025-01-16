@@ -51,6 +51,11 @@ if "pipelines" not in document:
 
 pipelines = document["pipelines"]
 
+if "image" in document:
+    image = document["image"]
+else:
+    image = "atlassian/default-image:latest"
+
 if arguments.default:
     if "default" not in pipelines:
         print("Default needs to be set")
