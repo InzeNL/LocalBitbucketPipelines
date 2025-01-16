@@ -89,6 +89,7 @@ if arguments.default:
 
     for step in steps:
         container_id = docker_start_step(image)
-        docker_execute_step(container_id, step)
-
-        docker_kill_step(container_id)
+        try:
+            docker_execute_step(container_id, step)
+        finally:
+            docker_kill_step(container_id)
