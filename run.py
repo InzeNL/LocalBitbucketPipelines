@@ -17,6 +17,25 @@ parser.add_argument(
 arguments = parser.parse_args()
 #endregion
 
+#region Functions
+def get_steps(pipelines):
+    if pipelines is None:
+        return []
+
+    steps = []
+
+    for potential_step in pipelines:
+        if "step" in potential_step:
+            steps.append(potential_step["step"])
+        if "parallel" in potential_step:
+            parallel = potential_step["parallel"]
+
+            if "steps" in parallel:
+                steps.append(get_steps(parallel["steps"]))
+
+    return steps
+#endregion
+
 document = yaml.load(open("bitbucket-pipelines.yml").read(), Loader=yaml.CLoader)
 schema = json.loads(open("schema.json").read())
 
