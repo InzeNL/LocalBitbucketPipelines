@@ -4,6 +4,7 @@ import jsonschema
 import json
 import shutil
 import subprocess
+import threading
 
 #region Arguments
 parser = argparse.ArgumentParser(
@@ -44,17 +45,29 @@ def docker_start_step(image):
 
     return step_result.stdout.splitlines()[0]
 
-def docker_execute_step(step):
+def docker_execute_step(step, max_time):
+    def execute_step():
+        script = step["script"]
+
+        for command in script:
+            executable_command = "docker exec -i " + container_id + " " + command
+            subprocess.run(executable_command)
+
     if isinstance(step, list):
         for sub_step in step:
-            docker_execute_step(sub_step)
+            docker_execute_step(sub_step, max_time)
     elif "script" in step:
         container_id = docker_start_step(image)
         try:
-            script = step["script"]
-            for command in script:
-                executable_command = "docker exec -i " + container_id + " " + command
-                subprocess.run(executable_command)
+            if "max-time" in step: 
+                max_time = int(step["max-time"]) 
+    
+            thread = threading.Thread(target=execute_step) 
+            thread.start() 
+            thread.join(max_time * 60) 
+            
+            if thread.is_alive(): 
+                print("Step timed out") 
         finally:
             docker_kill_step(container_id)
 
@@ -77,10 +90,17 @@ if "pipelines" not in document:
 
 pipelines = document["pipelines"]
 
+image = "atlassian/default-image:latest" 
+max_time = 120 
+
 if "image" in document:
     image = document["image"]
-else:
-    image = "atlassian/default-image:latest"
+
+if "options" in document: 
+    options = document["options"] 
+ 
+    if "max-time" in options: 
+        max_time = int(options["max-time"]) 
 
 if arguments.default:
     if "default" not in pipelines:
@@ -91,4 +111,4 @@ if arguments.default:
 
     steps = get_steps(default)
 
-    docker_execute_step(steps)
+    docker_execute_step(steps, max_time)
