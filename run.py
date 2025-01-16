@@ -44,15 +44,19 @@ def docker_start_step(image):
 
     return step_result.stdout.splitlines()[0]
 
-def docker_execute_step(container_id, step):
+def docker_execute_step(step):
     if isinstance(step, list):
         for sub_step in step:
-            docker_execute_step(container_id, sub_step)
+            docker_execute_step(sub_step)
     elif "script" in step:
-        script = step["script"]
-        for command in script:
-            executable_command = "docker exec -i " + container_id + " " + command
-            subprocess.run(executable_command)
+        container_id = docker_start_step(image)
+        try:
+            script = step["script"]
+            for command in script:
+                executable_command = "docker exec -i " + container_id + " " + command
+                subprocess.run(executable_command)
+        finally:
+            docker_kill_step(container_id)
 
 def docker_kill_step(container_id):
     subprocess.run(["docker", "kill", container_id], stdout=subprocess.DEVNULL)
@@ -87,9 +91,4 @@ if arguments.default:
 
     steps = get_steps(default)
 
-    for step in steps:
-        container_id = docker_start_step(image)
-        try:
-            docker_execute_step(container_id, step)
-        finally:
-            docker_kill_step(container_id)
+    docker_execute_step(steps)
