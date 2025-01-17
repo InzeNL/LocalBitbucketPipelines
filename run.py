@@ -39,6 +39,12 @@ pipeline_arguments.add_argument(
     metavar="BRANCH"
 )
 
+pipeline_arguments.add_argument(
+    "-t", "--tag",
+    help="run a tag pipeline",
+    metavar="TAG"
+)
+
 parser.add_argument(
     "Directory",
     help="working directory that contains the bitbucket-pipelines.yml to run"
@@ -230,7 +236,8 @@ if arguments.default \
 
 if not arguments.default \
     and arguments.pull_request is None \
-    and arguments.branch is None:
+    and arguments.branch is None \
+    and arguments.tag is None:
     print("ERROR: Must specify pipeline to run\n")
 
     parser.print_help()
@@ -273,3 +280,18 @@ if arguments.branch is not None:
     branch = branches[arguments.branch]
 
     execute_steps(branch)
+
+if arguments.tag is not None:
+    if "tags" not in pipelines:
+        print("Tags section needs to be configured in YAML")
+        exit(1)
+
+    tags = pipelines["tags"]
+
+    if arguments.tag not in tags:
+        print("Tag \"{0}\" not configured in YAML".format(arguments.tag))
+        exit(1)
+    
+    tag = tags[arguments.tag]
+
+    execute_steps(tag)
