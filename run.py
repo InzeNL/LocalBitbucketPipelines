@@ -93,6 +93,11 @@ def expand_variables(string: str|None) -> str|None:
         return None
 
     return os.path.expandvars(string)
+
+def is_valid_git_repository(path: str) -> bool:
+    result = subprocess.run(["git", "ls-remote", path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+    return result.returncode == 0
 #endregion
 
 #region Docker
@@ -160,6 +165,10 @@ if shutil.which("git") is None:
     cannot_run = True
 
 if cannot_run:
+    exit(1)
+
+if not is_valid_git_repository(directory):
+    print("Directory \"{0}\" is not a valid Git directory".format(directory))
     exit(1)
 
 document = yaml.load(open(os.path.join(directory, "bitbucket-pipelines.yml")).read(), Loader=yaml.CLoader)
