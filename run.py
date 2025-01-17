@@ -100,6 +100,17 @@ def is_valid_git_repository(path: str) -> bool:
     result = subprocess.run(["git", "ls-remote", path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     return result.returncode == 0
+
+def execute_steps(pipeline): 
+    steps = get_steps(pipeline) 
+ 
+    if authorized: 
+        docker_logout() 
+ 
+    docker_execute_step(image, steps, max_time, authorized, directory) 
+ 
+    if authorized: 
+        docker_logout() 
 #endregion
 
 #region Docker
@@ -207,15 +218,7 @@ if arguments.default:
     
     default = pipelines["default"]
 
-    steps = get_steps(default)
-
-    if authorized:
-        docker_logout()
-
-    docker_execute_step(image, steps, max_time, authorized, directory)
-
-    if authorized:
-        docker_logout()
+    execute_steps(default)
 
 if not arguments.default:
     print("ERROR: Must specify pipeline to run\n")
