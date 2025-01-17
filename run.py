@@ -235,15 +235,21 @@ if "options" in document:
     if "max-time" in options: 
         max_time = int(options["max-time"])
 
-if arguments.default \
-    and arguments.pull_request is not None:
+pipeline_sum = sum(
+    [
+        arguments.default,
+        arguments.pull_request is not None,
+        arguments.branch is not None,
+        arguments.tag is not None,
+        arguments.custom is not None
+    ]
+)
+
+if pipeline_sum > 1:
     print("ERROR: Can only specify one pipeline to run")
     exit(1)
 
-if not arguments.default \
-    and arguments.pull_request is None \
-    and arguments.branch is None \
-    and arguments.tag is None:
+if pipeline_sum == 0:
     print("ERROR: Must specify pipeline to run\n")
 
     parser.print_help()
