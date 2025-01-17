@@ -94,7 +94,8 @@ def docker_execute_step(image: Image, step, max_time):
         for sub_step in step:
             docker_execute_step(image, sub_step, max_time)
     elif "script" in step:
-        container_id = docker_start_step(image)
+        step_image = get_image(step, image)
+        container_id = docker_start_step(step_image)
         try:
             if "max-time" in step: 
                 max_time = int(step["max-time"]) 
