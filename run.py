@@ -28,9 +28,15 @@ pipeline_arguments.add_argument(
 )
 
 pipeline_arguments.add_argument(
-    "-p", "--pull-requests",
+    "-p", "--pull-request",
     help="run a pull-request pipeline",
     metavar="PULL_REQUEST"
+)
+
+pipeline_arguments.add_argument(
+    "-b", "--branch",
+    help="run a branch pipeline",
+    metavar="BRANCH"
 )
 
 parser.add_argument(
@@ -218,12 +224,13 @@ if "options" in document:
         max_time = int(options["max-time"])
 
 if arguments.default \
-    and arguments.pull_requests is not None:
+    and arguments.pull_request is not None:
     print("ERROR: Can only specify one pipeline to run")
     exit(1)
 
 if not arguments.default \
-    and arguments.pull_requests is None:
+    and arguments.pull_request is None \
+    and arguments.branch is None:
     print("ERROR: Must specify pipeline to run\n")
 
     parser.print_help()
@@ -237,17 +244,32 @@ if arguments.default:
 
     execute_steps(default)
 
-if arguments.pull_requests is not None:
+if arguments.pull_request is not None:
     if "pull-requests" not in pipelines:
         print("Pull-requests section needs to be configured in YAML")
         exit(1)
 
     pull_requests = pipelines["pull-requests"]
 
-    if arguments.pull_requests not in pull_requests:
-        print("Pull-request \"{0}\" not configured in YAML".format(arguments.pull_requests))
+    if arguments.pull_request not in pull_requests:
+        print("Pull-request \"{0}\" not configured in YAML".format(arguments.pull_request))
         exit(1)
     
-    pull_request = pull_requests[arguments.pull_requests]
+    pull_request = pull_requests[arguments.pull_request]
 
     execute_steps(pull_request)
+
+if arguments.branch is not None:
+    if "branches" not in pipelines:
+        print("Branches section needs to be configured in YAML")
+        exit(1)
+
+    branches = pipelines["branches"]
+
+    if arguments.branch not in branches:
+        print("Branch \"{0}\" not configured in YAML".format(arguments.branch))
+        exit(1)
+    
+    branch = branches[arguments.branch]
+
+    execute_steps(branch)
