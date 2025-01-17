@@ -5,6 +5,7 @@ import json
 import shutil
 import subprocess
 import threading
+import os.path as path
 
 #region Arguments
 parser = argparse.ArgumentParser(
@@ -30,10 +31,10 @@ arguments = parser.parse_args()
 #region Classes
 class Image:
     def __init__(self, name: str, username: str, password: str, run_as_user: str):
-        self.name = name
-        self.username = username
-        self.password = password
-        self.run_as_user = run_as_user
+        self.name = expand_variables(name)
+        self.username = expand_variables(username)
+        self.password = expand_variables(password)
+        self.run_as_user = expand_variables(run_as_user)
 #endregion
 
 #region Functions
@@ -81,6 +82,12 @@ def get_image(step, default: Image = None) -> Image:
             return Image(image_name, image_username, image_password, image_run_as_user)
     else:
         return default
+    
+def expand_variables(string: str|None) -> str|None:
+    if string is None:
+        return None
+
+    return path.expandvars(string)
 #endregion
 
 #region Docker
@@ -94,7 +101,7 @@ def docker_execute_step(image: Image, step, max_time, authorized: bool):
         script = step["script"]
 
         for command in script:
-            executable_command = "docker exec -i " + container_id + " " + command
+            executable_command = "docker exec -i " + container_id + " " + expand_variables(command)
             subprocess.run(executable_command)
 
     if isinstance(step, list):
