@@ -9,12 +9,19 @@ import threading
 #region Arguments
 parser = argparse.ArgumentParser(
     prog='Bitbucket Pipelines Runner',
-    description='Allows users to run Bitbucket Pipelines locally')
+    description='Allows users to run Bitbucket Pipelines locally',
+    formatter_class=argparse.RawTextHelpFormatter)
 
 parser.add_argument(
     "-d", "--default",
     action="store_true",
     help="Run the default pipeline"
+)
+
+parser.add_argument(
+    "-a", "--authorize",
+    action="store_true",
+    help="Authenticate using credentials from the configuration.\nWARNING: This will log you out of your local docker"
 )
 
 arguments = parser.parse_args()
@@ -82,7 +89,7 @@ def docker_start_step(image: Image):
 
     return step_result.stdout.splitlines()[0]
 
-def docker_execute_step(image: Image, step, max_time):
+def docker_execute_step(image: Image, step, max_time, authorized: bool):
     def execute_step():
         script = step["script"]
 
@@ -92,9 +99,15 @@ def docker_execute_step(image: Image, step, max_time):
 
     if isinstance(step, list):
         for sub_step in step:
-            docker_execute_step(image, sub_step, max_time)
+            docker_execute_step(image, sub_step, max_time, authorized)
     elif "script" in step:
         step_image = get_image(step, image)
+
+        if authorized \
+            and step_image.name is not None \
+            and step_image.password is not None:
+            docker_login(step_image.name, step_image.password)
+
         container_id = docker_start_step(step_image)
         try:
             if "max-time" in step: 
@@ -107,11 +120,19 @@ def docker_execute_step(image: Image, step, max_time):
             if thread.is_alive(): 
                 print("Step timed out") 
         finally:
+            if authorized:
+                docker_logout()
             docker_kill_step(container_id)
 
 def docker_kill_step(container_id):
     subprocess.run(["docker", "kill", container_id], stdout=subprocess.DEVNULL)
     subprocess.run(["docker", "rm", container_id], stdout=subprocess.DEVNULL)
+
+def docker_login(username: str, password: str):
+    subprocess.run(["docker", "login", "-u \"{0}\"".format(username), "-p \"{0}\"".format(password)])
+
+def docker_logout():
+    subprocess.run(["docker", "logout"], stdout=subprocess.DEVNULL)
 #endregion
 
 if shutil.which("docker") is None:
@@ -129,7 +150,9 @@ if "pipelines" not in document:
 pipelines = document["pipelines"]
 
 image = get_image(document)
-max_time = 120 
+max_time = 120
+
+authorized = arguments.authorize
 
 if "options" in document: 
     options = document["options"] 
@@ -146,4 +169,10 @@ if arguments.default:
 
     steps = get_steps(default)
 
-    docker_execute_step(image, steps, max_time)
+    if authorized:
+        docker_logout()
+
+    docker_execute_step(image, steps, max_time, authorized)
+
+    if authorized:
+        docker_logout()
