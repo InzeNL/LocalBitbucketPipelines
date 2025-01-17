@@ -106,7 +106,7 @@ def docker_execute_step(image: Image, step, max_time, authorized: bool):
         script = step["script"]
 
         for command in script:
-            executable_command = "docker exec -i " + container_id + " " + expand_variables(command)
+            executable_command = "docker exec -i " + container_id + " " + command
             subprocess.run(executable_command)
 
     if isinstance(step, list):
