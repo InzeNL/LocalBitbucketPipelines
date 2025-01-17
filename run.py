@@ -151,9 +151,9 @@ def docker_execute_step(image: Image, step, max_time, authorized: bool, director
         step_image = get_image(step, image)
 
         if authorized \
-            and step_image.name is not None \
+            and step_image.username is not None \
             and step_image.password is not None:
-            docker_login(step_image.name, step_image.password)
+            docker_login(step_image.username, step_image.password)
 
         container_id = docker_start_step(step_image, directory)
         try:
@@ -176,7 +176,7 @@ def docker_kill_step(container_id):
     subprocess.run(["docker", "rm", container_id], stdout=subprocess.DEVNULL)
 
 def docker_login(username: str, password: str):
-    subprocess.run(["docker", "login", "-u \"{0}\"".format(username), "-p \"{0}\"".format(password)])
+    subprocess.run(["docker", "login", "-u", username, "-p", password])
 
 def docker_logout():
     subprocess.run(["docker", "logout"], stdout=subprocess.DEVNULL)
