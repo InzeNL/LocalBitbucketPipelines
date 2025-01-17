@@ -20,6 +20,15 @@ parser.add_argument(
 arguments = parser.parse_args()
 #endregion
 
+#region Classes
+class Image:
+    def __init__(self, name: str, username: str, password: str, run_as_user: str):
+        self.name = name
+        self.username = username
+        self.password = password
+        self.run_as_user = run_as_user
+#endregion
+
 #region Functions
 def get_steps(pipelines):
     if pipelines is None:
@@ -37,15 +46,43 @@ def get_steps(pipelines):
                 steps.append(get_steps(parallel["steps"]))
 
     return steps
+
+def get_image(step, default: Image = None) -> Image:
+    if default is None:
+        default = Image("atlassian/default-image:latest", None, None, None)
+
+    if "image" in step:
+        image = step["image"]
+
+        if isinstance(image, str):
+            return Image(image, None, None, None)
+        else:
+            image_name = "atlassian/default-image:latest";
+            image_username = None
+            image_password = None
+            image_run_as_user = None
+
+            if "name" in image:
+                image_name = image["name"]
+            if "username" in image:
+                image_username = image["username"]
+            if "password" in image:
+                image_password = image["password"]
+            if "run-as-user" in image:
+                image_run_as_user = image["run-as-user"]
+
+            return Image(image_name, image_username, image_password, image_run_as_user)
+    else:
+        return default
 #endregion
 
 #region Docker
-def docker_start_step(image_name):
-    step_result = subprocess.run(["docker", "run", "-di", image_name], stdout=subprocess.PIPE, text=True)
+def docker_start_step(image: Image):
+    step_result = subprocess.run(["docker", "run", "-di", image.name], stdout=subprocess.PIPE, text=True)
 
     return step_result.stdout.splitlines()[0]
 
-def docker_execute_step(image_name, step, max_time):
+def docker_execute_step(image: Image, step, max_time):
     def execute_step():
         script = step["script"]
 
@@ -55,9 +92,9 @@ def docker_execute_step(image_name, step, max_time):
 
     if isinstance(step, list):
         for sub_step in step:
-            docker_execute_step(image_name, sub_step, max_time)
+            docker_execute_step(image, sub_step, max_time)
     elif "script" in step:
-        container_id = docker_start_step(image_name)
+        container_id = docker_start_step(image)
         try:
             if "max-time" in step: 
                 max_time = int(step["max-time"]) 
@@ -90,26 +127,8 @@ if "pipelines" not in document:
 
 pipelines = document["pipelines"]
 
-image_name = "atlassian/default-image:latest"
-image_username = None
-image_password = None
-image_run_as_user = None
+image = get_image(document)
 max_time = 120 
-
-if "image" in document:
-    if image_name is str:
-        image_name = document["image"]
-    else:
-        image = document["image"]
-        
-        if "name" in image:
-            image_name = image["name"]
-        if "username" in image:
-            image_username = image["username"]
-        if "password" in image:
-            image_password = image["password"]
-        if "run-as-user" in image:
-            image_run_as_user = image["run-as-user"]
 
 if "options" in document: 
     options = document["options"] 
@@ -126,4 +145,4 @@ if arguments.default:
 
     steps = get_steps(default)
 
-    docker_execute_step(image_name, steps, max_time)
+    docker_execute_step(image, steps, max_time)
