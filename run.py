@@ -14,20 +14,22 @@ parser = argparse.ArgumentParser(
     formatter_class=argparse.RawTextHelpFormatter)
 
 parser.add_argument(
-    "-d", "--default",
-    action="store_true",
-    help="Run the default pipeline"
-)
-
-parser.add_argument(
     "-a", "--authorize",
     action="store_true",
-    help="Authenticate using credentials from the configuration.\nWARNING: This will log you out of your local docker"
+    help="authenticate using credentials from the configuration.\nWARNING: this will log you out of your local docker"
+)
+
+pipeline_arguments = parser.add_argument_group("pipeline")
+
+pipeline_arguments.add_argument(
+    "-d", "--default",
+    action="store_true",
+    help="run the default pipeline"
 )
 
 parser.add_argument(
     "Directory",
-    help="Working directory to run the pipelines for"
+    help="working directory that contains the bitbucket-pipelines.yml to run"
 )
 
 arguments = parser.parse_args()
