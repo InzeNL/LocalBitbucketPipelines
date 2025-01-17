@@ -149,8 +149,18 @@ def docker_logout():
 
 directory = arguments.Directory
 
+cannot_run = False
+
 if shutil.which("docker") is None:
     print("Docker needs to be installed for this program to work")
+    cannot_run = True
+
+if shutil.which("git") is None:
+    print("Git needs to be installed for this program to work")
+    cannot_run = True
+
+if cannot_run:
+    exit(1)
 
 document = yaml.load(open(os.path.join(directory, "bitbucket-pipelines.yml")).read(), Loader=yaml.CLoader)
 schema = json.loads(open("schema.json").read())
@@ -172,7 +182,7 @@ if "options" in document:
     options = document["options"] 
  
     if "max-time" in options: 
-        max_time = int(options["max-time"]) 
+        max_time = int(options["max-time"])
 
 if arguments.default:
     if "default" not in pipelines:
