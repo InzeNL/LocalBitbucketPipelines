@@ -216,3 +216,8 @@ if arguments.default:
 
     if authorized:
         docker_logout()
+
+if not arguments.default:
+    print("ERROR: Must specify pipeline to run\n")
+
+    parser.print_help()
