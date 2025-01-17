@@ -103,12 +103,17 @@ def is_valid_git_repository(path: str) -> bool:
 #endregion
 
 #region Docker
-def docker_start_step(image: Image):
+def docker_start_step(image: Image, directory: str):
     step_result = subprocess.run(["docker", "run", "-di", image.name], stdout=subprocess.PIPE, text=True)
 
-    return step_result.stdout.splitlines()[0]
+    container_id = step_result.stdout.splitlines()[0]
 
-def docker_execute_step(image: Image, step, max_time, authorized: bool):
+    subprocess.run(["docker", "exec", "-i", container_id, "mkdir", "-p", "/opt/atlassian/pipelines/agent/build"], stdout=subprocess.DEVNULL)
+    subprocess.run(["docker", "cp", directory, "{0}:/opt/atlassian/pipelines/agent/build".format(container_id)], stdout=subprocess.DEVNULL)
+
+    return container_id
+
+def docker_execute_step(image: Image, step, max_time, authorized: bool, directory: str):
     def execute_step():
         script = step["script"]
 
@@ -118,7 +123,7 @@ def docker_execute_step(image: Image, step, max_time, authorized: bool):
 
     if isinstance(step, list):
         for sub_step in step:
-            docker_execute_step(image, sub_step, max_time, authorized)
+            docker_execute_step(image, sub_step, max_time, authorized, directory)
     elif "script" in step:
         step_image = get_image(step, image)
 
@@ -127,7 +132,7 @@ def docker_execute_step(image: Image, step, max_time, authorized: bool):
             and step_image.password is not None:
             docker_login(step_image.name, step_image.password)
 
-        container_id = docker_start_step(step_image)
+        container_id = docker_start_step(step_image, directory)
         try:
             if "max-time" in step: 
                 max_time = int(step["max-time"]) 
@@ -207,7 +212,7 @@ if arguments.default:
     if authorized:
         docker_logout()
 
-    docker_execute_step(image, steps, max_time, authorized)
+    docker_execute_step(image, steps, max_time, authorized, directory)
 
     if authorized:
         docker_logout()
