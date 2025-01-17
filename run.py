@@ -45,6 +45,12 @@ pipeline_arguments.add_argument(
     metavar="TAG"
 )
 
+pipeline_arguments.add_argument(
+    "-c", "--custom",
+    help="run a custom pipeline",
+    metavar="CUSTOM"
+)
+
 parser.add_argument(
     "Directory",
     help="working directory that contains the bitbucket-pipelines.yml to run"
@@ -295,3 +301,18 @@ if arguments.tag is not None:
     tag = tags[arguments.tag]
 
     execute_steps(tag)
+
+if arguments.custom is not None:
+    if "custom" not in pipelines:
+        print("Custom section needs to be configured in YAML")
+        exit(1)
+
+    custom = pipelines["custom"]
+
+    if arguments.custom not in custom:
+        print("Custom \"{0}\" not configured in YAML".format(arguments.custom))
+        exit(1)
+    
+    custom_pipeline = custom[arguments.custom]
+
+    execute_steps(custom_pipeline)
