@@ -5,7 +5,7 @@ import json
 import shutil
 import subprocess
 import threading
-import os.path as path
+import os
 
 #region Arguments
 parser = argparse.ArgumentParser(
@@ -23,6 +23,11 @@ parser.add_argument(
     "-a", "--authorize",
     action="store_true",
     help="Authenticate using credentials from the configuration.\nWARNING: This will log you out of your local docker"
+)
+
+parser.add_argument(
+    "Directory",
+    help="Working directory to run the pipelines for"
 )
 
 arguments = parser.parse_args()
@@ -87,7 +92,7 @@ def expand_variables(string: str|None) -> str|None:
     if string is None:
         return None
 
-    return path.expandvars(string)
+    return os.path.expandvars(string)
 #endregion
 
 #region Docker
@@ -142,10 +147,12 @@ def docker_logout():
     subprocess.run(["docker", "logout"], stdout=subprocess.DEVNULL)
 #endregion
 
+directory = arguments.Directory
+
 if shutil.which("docker") is None:
     print("Docker needs to be installed for this program to work")
 
-document = yaml.load(open("bitbucket-pipelines.yml").read(), Loader=yaml.CLoader)
+document = yaml.load(open(os.path.join(directory, "bitbucket-pipelines.yml")).read(), Loader=yaml.CLoader)
 schema = json.loads(open("schema.json").read())
 
 jsonschema.validate(document, schema)
