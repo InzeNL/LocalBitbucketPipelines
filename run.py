@@ -27,6 +27,12 @@ pipeline_arguments.add_argument(
     help="run the default pipeline"
 )
 
+pipeline_arguments.add_argument(
+    "-p", "--pull-requests",
+    help="run a pull-request pipeline",
+    metavar="PULL_REQUEST"
+)
+
 parser.add_argument(
     "Directory",
     help="working directory that contains the bitbucket-pipelines.yml to run"
@@ -211,16 +217,37 @@ if "options" in document:
     if "max-time" in options: 
         max_time = int(options["max-time"])
 
+if arguments.default \
+    and arguments.pull_requests is not None:
+    print("ERROR: Can only specify one pipeline to run")
+    exit(1)
+
+if not arguments.default \
+    and arguments.pull_requests is None:
+    print("ERROR: Must specify pipeline to run\n")
+
+    parser.print_help()
+
 if arguments.default:
     if "default" not in pipelines:
-        print("Default needs to be set")
+        print("Default section needs to be configured in YAML")
         exit(1)
     
     default = pipelines["default"]
 
     execute_steps(default)
 
-if not arguments.default:
-    print("ERROR: Must specify pipeline to run\n")
+if arguments.pull_requests is not None:
+    if "pull-requests" not in pipelines:
+        print("Pull-requests section needs to be configured in YAML")
+        exit(1)
 
-    parser.print_help()
+    pull_requests = pipelines["pull-requests"]
+
+    if arguments.pull_requests not in pull_requests:
+        print("Pull-request \"{0}\" not configured in YAML".format(arguments.pull_requests))
+        exit(1)
+    
+    pull_request = pull_requests[arguments.pull_requests]
+
+    execute_steps(pull_request)
