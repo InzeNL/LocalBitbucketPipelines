@@ -81,7 +81,9 @@ def get_steps(pipelines):
         if "parallel" in potential_step:
             parallel = potential_step["parallel"]
 
-            if "steps" in parallel:
+            if isinstance(parallel, list):
+                steps.append(get_steps(parallel))
+            elif "steps" in parallel:
                 steps.append(get_steps(parallel["steps"]))
 
     return steps
