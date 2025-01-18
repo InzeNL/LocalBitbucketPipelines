@@ -152,9 +152,7 @@ def docker_execute_step(image: Image, step, max_time, authorized: bool, director
     def execute_step():
         script = step["script"]
 
-        for command in script:
-            executable_command = "docker exec -i " + container_id + " " + command
-            subprocess.run(executable_command)
+        subprocess.run(["docker", "exec", "-i", "-w", "/opt/atlassian/pipelines/agent/build", container_id, "sh", "-c", " ; ".join(script)])
 
     if isinstance(step, list):
         for sub_step in step:
