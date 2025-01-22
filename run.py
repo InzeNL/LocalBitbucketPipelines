@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import threading
 import os
+import posixpath
 
 #region Arguments
 parser = argparse.ArgumentParser(
@@ -146,7 +147,8 @@ def docker_start_step(image: Image, directory: str):
     container_id = step_result.stdout.splitlines()[0]
 
     subprocess.run(["docker", "exec", "-i", container_id, "mkdir", "-p", "/opt/atlassian/pipelines/agent/build"], stdout=subprocess.DEVNULL)
-    subprocess.run(["docker", "cp", directory, "{0}:/opt/atlassian/pipelines/agent/build".format(container_id)], stdout=subprocess.DEVNULL)
+
+    docker_copy_files(container_id, directory, "/opt/atlassian/pipelines/agent/build")
 
     return container_id
 
@@ -192,6 +194,18 @@ def docker_login(username: str, password: str):
 
 def docker_logout():
     subprocess.run(["docker", "logout"], stdout=subprocess.DEVNULL)
+
+def docker_copy_files(container_id: str, source: str, target: str) -> list[str]:
+    result = subprocess.run(['git', 'ls-files', '--cached', '--others', '--exclude-standard'], cwd=source, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+    if result.returncode == 0:
+        lines = result.stdout.splitlines()
+
+        for file in lines:
+            file_path = os.path.join(source, file)
+            relative_directory = posixpath.join(target, os.path.dirname(file))
+            subprocess.run(["docker", "exec", "-i", container_id, "mkdir", "-p", relative_directory], stdout=subprocess.DEVNULL)
+            subprocess.run(["docker", "cp", file_path, "{0}:{1}".format(container_id, relative_directory)], stdout=subprocess.DEVNULL)
 #endregion
 
 directory = arguments.Directory
