@@ -128,21 +128,21 @@ def is_valid_git_repository(path: str) -> bool:
 
     return result.returncode == 0
 
-def execute_steps(pipeline): 
+def execute_steps(pipeline, container_commands: list[str]): 
     steps = get_steps(pipeline) 
  
     if authorized: 
         docker_logout() 
  
-    docker_execute_step(image, steps, max_time, authorized, directory) 
+    docker_execute_step(image, steps, max_time, authorized, directory, container_commands) 
  
     if authorized: 
         docker_logout() 
 #endregion
 
 #region Docker
-def docker_start_step(image: Image, directory: str):
-    step_result = subprocess.run(["docker", "run", "-di", image.name], stdout=subprocess.PIPE, text=True)
+def docker_start_step(image: Image, directory: str, container_commands: list[str]):
+    step_result = subprocess.run(["docker", "run"] + container_commands + ["-di", image.name], stdout=subprocess.PIPE, text=True)
 
     container_id = step_result.stdout.splitlines()[0]
 
@@ -152,7 +152,7 @@ def docker_start_step(image: Image, directory: str):
 
     return container_id
 
-def docker_execute_step(image: Image, step, max_time, authorized: bool, directory: str):
+def docker_execute_step(image: Image, step, max_time, authorized: bool, directory: str, container_commands: list[str]):
     def execute_step():
         script = step["script"]
 
@@ -160,7 +160,7 @@ def docker_execute_step(image: Image, step, max_time, authorized: bool, director
 
     if isinstance(step, list):
         for sub_step in step:
-            docker_execute_step(image, sub_step, max_time, authorized, directory)
+            docker_execute_step(image, sub_step, max_time, authorized, directory, container_commands)
     elif "script" in step:
         step_image = get_image(step, image)
 
@@ -169,7 +169,7 @@ def docker_execute_step(image: Image, step, max_time, authorized: bool, director
             and step_image.password is not None:
             docker_login(step_image.username, step_image.password)
 
-        container_id = docker_start_step(step_image, directory)
+        container_id = docker_start_step(step_image, directory, container_commands)
         try:
             if "max-time" in step: 
                 max_time = int(step["max-time"]) 
@@ -243,6 +243,8 @@ max_time = 120
 
 authorized = arguments.authorize
 
+container_commands = []
+
 if "options" in document: 
     options = document["options"] 
  
@@ -290,7 +292,7 @@ if arguments.pull_request is not None:
     
     pull_request = pull_requests[arguments.pull_request]
 
-    execute_steps(pull_request)
+    execute_steps(pull_request, container_commands)
 
 if arguments.branch is not None:
     if "branches" not in pipelines:
@@ -305,7 +307,7 @@ if arguments.branch is not None:
     
     branch = branches[arguments.branch]
 
-    execute_steps(branch)
+    execute_steps(branch, container_commands)
 
 if arguments.tag is not None:
     if "tags" not in pipelines:
@@ -320,7 +322,7 @@ if arguments.tag is not None:
     
     tag = tags[arguments.tag]
 
-    execute_steps(tag)
+    execute_steps(tag, container_commands)
 
 if arguments.custom is not None:
     if "custom" not in pipelines:
@@ -335,4 +337,4 @@ if arguments.custom is not None:
     
     custom_pipeline = custom[arguments.custom]
 
-    execute_steps(custom_pipeline)
+    execute_steps(custom_pipeline, container_commands)
