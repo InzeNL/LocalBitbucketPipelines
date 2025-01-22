@@ -57,6 +57,20 @@ parser.add_argument(
     help="working directory that contains the bitbucket-pipelines.yml to run"
 )
 
+parser.add_argument(
+    "-e", "--env",
+    action="append",
+    help="set environment variables",
+    metavar="ENV"
+)
+
+parser.add_argument(
+    "--env-file",
+    action="append",
+    help="read in a file of environment variables",
+    metavar="ENV_FILE"
+)
+
 arguments = parser.parse_args()
 #endregion
 
@@ -244,6 +258,17 @@ max_time = 120
 authorized = arguments.authorize
 
 container_commands = []
+
+if arguments.env is not None:
+    for env in arguments.env:
+        container_commands.append("-e")
+        container_commands.append(env)
+
+        
+if arguments.env_file is not None:
+    for env_file in arguments.env_file:
+        container_commands.append("--env-file")
+        container_commands.append(env_file)
 
 if "options" in document: 
     options = document["options"] 
